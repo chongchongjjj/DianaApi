@@ -4,13 +4,10 @@ set -e
 
 echo "Step 1: Install Python package to current environment..."
 pip install .
-
-echo "Step 2: Copy all .so files to site-packages/dianaapi/ ..."
 SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
-TARGET_DIR=$SITE_PACKAGES/dianaapi
-cp *.so $TARGET_DIR
+TARGET_DIR=$SITE_PACKAGES/diana_robot
 
-echo "Step 3: Check and set LD_LIBRARY_PATH in ~/.bashrc ..."
+echo "Step 2: Check and set LD_LIBRARY_PATH in ~/.bashrc ..."
 LD_PATH_LINE="export LD_LIBRARY_PATH=$TARGET_DIR:\$LD_LIBRARY_PATH"
 if ! grep -Fxq "$LD_PATH_LINE" ~/.bashrc; then
     echo "$LD_PATH_LINE" >> ~/.bashrc
@@ -19,7 +16,7 @@ else
     echo "LD_LIBRARY_PATH already exists in ~/.bashrc"
 fi
 
-echo "Step 4: Make LD_LIBRARY_PATH effective for current shell..."
+echo "Step 3: Make LD_LIBRARY_PATH effective for current shell..."
 export LD_LIBRARY_PATH=$TARGET_DIR:$LD_LIBRARY_PATH
 
 echo "Installation finished! Please restart your terminal or run 'source ~/.bashrc' to make LD_LIBRARY_PATH effective."

@@ -7,7 +7,7 @@ setup(
     author='Zilong Huang',
     packages=find_packages(),
     package_data={
-        'dianaapi': [
+        'diana_robot': [
             'libDianaApi.so',
             'libGenericAlgorithm.so',
             'libToolSdk.so',
