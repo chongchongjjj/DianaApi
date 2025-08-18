@@ -13,7 +13,7 @@ A Python SDK for controlling Diana robotic arms, including C/C++ dynamic librari
 
 1. **Clone this repository:**
    ```bash
-   git clone https://github.com/yourusername/DianaRobotSDK.git
+   git clone https://github.com/chongchongjjj/DianaRobotSDK.git
    cd DianaRobotSDK
    ```
 
