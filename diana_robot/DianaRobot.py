@@ -1,4 +1,6 @@
 from .DianaApi import *
+import numpy as np
+JOINT_NUM = 7
 
 class DianaRobot:
     def __init__(self, ip='192.168.1.10'):
@@ -8,20 +10,72 @@ class DianaRobot:
         initSrv(self.srv_net_st)
         releaseBrake(ip)
 
-    def movej(self, joints, v=0.5, a=0.5):
+    def poseTransform(self, srcPose, srcMatrixPose, dstMatrixPose, dstPose):
+        """Transform pose between different coordinate systems"""
+        return poseTransform(srcPose, srcMatrixPose, dstMatrixPose, dstPose)
+
+    def movej_joint(self, joint, v=0.5, a=0.5):
         """Joint space motion"""
-        return moveJToTarget(joints, v, a, ipAddress=self.ip)
+        return moveJToTarget(joint, v, a, ipAddress=self.ip)
+    
+    def movej_pose(self, pose, v=0.2, a=0.2):
+        """Joint space motion to reach a specific pose"""
+        return moveJToPose(pose, v, a, ipAddress=self.ip)
+
+    def movej_pose_list(self, poses, v=0.2, a=0.2, r=0.1):
+        path_id = createPath(1, ipAddress=self.ip)[1]
+        for pose in poses:
+            joints= [0.0]*7
+            inverse(pose, joints, ipAddress=self.ip)
+            addMoveJ(path_id, joints, v, a, r, ipAddress=self.ip)
+        runPath(path_id, ipAddress=self.ip)
+        self.wait_move()
+        destroyPath(path_id, ipAddress=self.ip)
+
+    def speedl(self, speeds, t, a=(0.1, 0.5)):
+        speedL(speeds, a, t, ipAddress=self.ip)
 
     def movel(self, pose, v=0.2, a=0.2):
         """Cartesian space motion"""
-        return moveLToPose(pose, v, a, ipAddress=self.ip)
+        return moveL(pose, v, a, ipAddress=self.ip)
+
+    def movel_list(self, poses, v=0.2, a=0.2, r=0.1):
+        ret = createComplexPath(complex_path_type.NORMAL_POSE_PATH, ipAddress=self.ip)
+        if ret[0] == 0:
+            for pose in poses:
+                addMoveJSegmentByPose(ret[1],pose,v,a,r,ipAddress=self.ip)
+            runComplexPath(ret[1] , ipAddress=self.ip)
+            self.wait_move()
+            destroyComplexPath(ret[1] , ipAddress=self.ip)
+
+    def wait_move(self):
+        """Wait for the robot to finish its current motion or until timeout."""
+        time.sleep(0.02)
+        while True:
+            state = getRobotState()
+            if state != 0 and state != 10:
+                break
+            elif state == 10:
+                start_joints = self.getJointPos()
+                time.sleep(1.0)
+                if np.max(np.abs(self.getJointPos()-start_joints)) < 0.5/180*np.pi:
+                    break
+            else:
+                time.sleep(0.001)
+        stop()
+
+    def getJointPos(self):
+        joints =[0.0]*JOINT_NUM
+        getJointPos(joints, ipAddress=self.ip)
+        return np.array(joints)
 
     def freedriving(self, mode=freedriving_mode_e.E_NORMAL_FREEDRIVING):
         """Enable/disable freedriving mode"""
         return freeDriving(mode, ipAddress=self.ip)
 
-    def enter_force_mode(self, frame_type, frame_matrix, force_direction, force_value, max_approach_velocity, max_allow_tcp_offset):
+    def enter_force_mode(self, frame_type, force_direction, force_value, max_approach_velocity, max_allow_tcp_offset):
         """Enter force control mode"""
+        frame_matrix = (1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)
         return enterForceMode(frame_type, frame_matrix, force_direction, force_value, max_approach_velocity, max_allow_tcp_offset, ipAddress=self.ip)
 
     def leave_force_mode(self, mode=mode_e.T_MODE_POSITION):
