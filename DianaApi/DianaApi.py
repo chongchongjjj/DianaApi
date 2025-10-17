@@ -1,12 +1,64 @@
-﻿#!usr/bin/python3
+#!/usr/bin/python3
 
 from ctypes import *
+import ctypes
 import platform
 import os
-import time
 import sys
+import time
 from enum import Enum
 import math
+from pathlib import Path
+
+_EXTRA_SHARED_LIBS = [
+    "libxml2.so",
+    "libBasicSdk.so",
+    "libGenericAlgorithm.so",
+    "libToolSdk.so",
+    "libVersionApi.so",
+]
+
+scriptLibraryNames = {
+    'Linux': 'libDianaApi.so',
+    'Windows': 'DianaApi.dll'
+}
+
+
+def _load_native_module():
+    """Load the Diana native libraries packaged with this module."""
+    library_dir = Path(__file__).resolve().parent
+    system = platform.system()
+    lib_name = scriptLibraryNames.get(system)
+    if lib_name is None:
+        raise OSError(f"Unsupported platform: {system}")
+
+    if system == "Windows":
+        if sys.version_info >= (3, 8):
+            os.add_dll_directory(str(library_dir))
+        else:
+            os.environ["PATH"] = str(library_dir) + os.pathsep + os.environ.get("PATH", "")
+        target = library_dir / lib_name
+        if not target.exists():
+            raise FileNotFoundError(f"Native library {target} not found")
+        return CDLL(str(target), winmode=0)
+
+    load_kwargs = {}
+    rtld_global = getattr(ctypes, "RTLD_GLOBAL", None)
+    if rtld_global is not None:
+        load_kwargs["mode"] = rtld_global
+
+    for dependency in _EXTRA_SHARED_LIBS:
+        dependency_path = library_dir / dependency
+        if dependency_path.exists():
+            CDLL(str(dependency_path), **load_kwargs)
+
+    target = library_dir / lib_name
+    if not target.exists():
+        raise FileNotFoundError(f"Native library {target} not found")
+    return CDLL(str(target), **load_kwargs)
+
+
+api_mod = _load_native_module()
 
 errorCodeMessage = {
     0: 'NO_ERROR_CODE',
@@ -49,21 +101,6 @@ errorCodeMessage = {
     -3003: 'ERROR_CODE_DUMP_LOG_FAILED',
     -3004: 'RESET_DH_FAILED',
 }
-
-scriptLibraryNames = {
-    'Linux': 'libDianaApi.so',
-    'Windows': 'DianaApi.dll'
-}
-
-scriptLibraryDir = os.path.split(os.path.realpath(__file__))[0]
-scriptLibraryPath = os.path.join(
-    scriptLibraryDir, scriptLibraryNames[platform.system()])
-api_mod = None
-print(scriptLibraryPath)
-if sys.version_info < (3, 8):
-    api_mod = CDLL(scriptLibraryPath)
-else:
-    api_mod = CDLL(scriptLibraryPath, winmode=0)
 
 # Enumration starts
 # add Enumration here
