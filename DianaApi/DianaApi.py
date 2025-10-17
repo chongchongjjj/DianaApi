@@ -656,7 +656,7 @@ def wait_move():
     time.sleep(0.02)
     while True:
         state = getRobotState()
-        if state != 0:
+        if state != 0 and state != 10:
             break
         else:
             time.sleep(0.001)
@@ -1210,7 +1210,6 @@ def enterForceMode(frame_type, frame_matrix, force_direction, force_value, max_a
     ret = api_mod.enterForceMode(frame_type, byref(dianaFrameMatrix), byref(
         dianaForceDirection), force_value, max_approach_velocity, max_allow_tcp_offset, bytes(ipAddress.encode('utf-8')))
     return message(ret)
-
 
 def leaveForceMode(mode, ipAddress=''):
     if not isinstance(mode, mode_e):
